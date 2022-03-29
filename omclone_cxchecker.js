@@ -56,6 +56,34 @@ __exports.evaluate_solution = function(solution) {
     wasm.evaluate_solution(ptr0, len0);
 };
 
+let cachegetUint32Memory0 = null;
+function getUint32Memory0() {
+    if (cachegetUint32Memory0 === null || cachegetUint32Memory0.buffer !== wasm.memory.buffer) {
+        cachegetUint32Memory0 = new Uint32Array(wasm.memory.buffer);
+    }
+    return cachegetUint32Memory0;
+}
+
+function passArray32ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 4);
+    getUint32Memory0().set(arg, ptr / 4);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+/**
+* @param {Uint8Array} solution
+* @param {Uint32Array} variants
+* @returns {boolean}
+*/
+__exports.random_test = function(solution, variants) {
+    var ptr0 = passArray8ToWasm0(solution, wasm.__wbindgen_malloc);
+    var len0 = WASM_VECTOR_LEN;
+    var ptr1 = passArray32ToWasm0(variants, wasm.__wbindgen_malloc);
+    var len1 = WASM_VECTOR_LEN;
+    var ret = wasm.random_test(ptr0, len0, ptr1, len1);
+    return ret !== 0;
+};
+
 function addHeapObject(obj) {
     if (heap_next === heap.length) heap.push(heap.length + 1);
     const idx = heap_next;
