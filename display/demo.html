@@ -72,13 +72,15 @@
 		puz_input.addEventListener('change', read_puzzle);
 		sol_input.addEventListener('change', read_solution);
 		
-		window.addEventListener('message', function (e) {
-			if (e.data && typeof e.data === 'object' && e.data.command && e.data.command === 'load') {
-				wasm_exports.js_load_puzzle(js_object(e.data.puzzle));
-				wasm_exports.js_load_solution(js_object(e.data.solution));
-			}
-		});
-		window.opener.postMessage("Hello","*");
+		if (window.opener && window.opener !== window){
+			window.addEventListener('message', function (e) {
+				if (e.data && typeof e.data === 'object' && e.data.command && e.data.command === 'load') {
+					wasm_exports.js_load_puzzle(js_object(e.data.puzzle));
+					wasm_exports.js_load_solution(js_object(e.data.solution));
+				}
+			});
+			window.opener.postMessage("Hello","*");
+		}
 	</script>
 
     <script>load("omclone_display.wasm");</script></body>
