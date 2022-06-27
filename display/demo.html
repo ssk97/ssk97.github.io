@@ -39,7 +39,6 @@
 
     <!-- JS code we want to use in our app -->
     <script>
-		load("omclone_display.wasm");
 		const puz_input = document.getElementById('puzzle-selector');
 		const sol_input = document.getElementById('solution-selector');
 		//https://dilshankelsen.com/convert-file-to-byte-array/
@@ -73,15 +72,21 @@
 		puz_input.addEventListener('change', read_puzzle);
 		sol_input.addEventListener('change', read_solution);
 		
-		if (window.opener && window.opener !== window){
-			window.addEventListener('message', function (e) {
-				if (e.data && typeof e.data === 'object' && e.data.command && e.data.command === 'load') {
-					wasm_exports.js_load_puzzle(js_object(e.data.puzzle));
-					wasm_exports.js_load_solution(js_object(e.data.solution));
-				}
-			});
-			window.opener.postMessage("Hello","*");
+		function on_init(){
+			if (window.opener && window.opener !== window){
+				window.addEventListener('message', function (e) {
+					if (e.data && typeof e.data === 'object' && e.data.command && e.data.command === 'load') {
+						wasm_exports.js_load_puzzle(js_object(e.data.puzzle));
+						wasm_exports.js_load_solution(js_object(e.data.solution));
+					}
+				});
+				window.opener.postMessage("Hello","*");
+			}
 		}
+		
+		miniquad_add_plugin({ on_init });
+		
+		load("omclone_display.wasm");
 	</script>
 
     </body>
