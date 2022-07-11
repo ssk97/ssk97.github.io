@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>omclone display</title>
+    <title>omclone editor</title>
     <style>
         html,
         body,
@@ -67,6 +67,7 @@
 		async function read_solution(){
 			const input_file = sol_input.files[0];
 			filedata = await getAsByteArray(input_file);
+			wasm_exports.js_load_solution_name(js_object(input_file.name));
 			wasm_exports.js_load_solution(js_object(filedata));
 		}
 		puz_input.addEventListener('change', read_puzzle);
@@ -86,7 +87,27 @@
 			}
 		}
 		
-		miniquad_add_plugin({ on_init });
+		function save_file(filedata, filename){
+				name = consume_js_object(filename)
+				data = consume_js_object(filedata)
+				const blob = new Blob([data]);
+			    const url = window.URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.style.display = 'none';
+				a.href = url;
+				// the filename you want
+				a.download = name;
+				document.body.appendChild(a);
+				a.click();
+				window.URL.revokeObjectURL(url);
+		}
+		
+		register_plugin = function (importObject) {
+		  // make save_file(filedata, filename) function available to call from rust
+		  importObject.env.save_file = save_file;
+		}
+		
+		miniquad_add_plugin({ register_plugin, on_init });
 		
 		load("omclone.wasm");
 	</script>
