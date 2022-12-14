@@ -74,12 +74,11 @@
 		
 		function on_init(){
 			if (window.opener && window.opener !== window){
-				const element = document.getElementById('header_div');
-				element.style.display = 'none';
 				window.addEventListener('message', function (e) {
 					if (e.data && typeof e.data === 'object' && e.data.command && e.data.command === 'load') {
 						wasm_exports.js_load_puzzle(js_object(e.data.puzzle));
 						wasm_exports.js_load_solution(js_object(e.data.solution));
+						document.getElementById('header_div').style.display = 'none';
 					}
 				});
 				window.opener.postMessage("Hello","*");
