@@ -26,7 +26,7 @@
 	<pre id="text_out"></pre>
     <script type="module">
 
-		import init, { run_test, setup_stats } from './omclone_habcheck.js';
+		import init, { run_test, setup_stats, init_sol } from './omclone_habcheck.js';
 
 		const input = document.getElementById('solution-selector');
 		const square_loc = document.getElementById("square");
@@ -36,7 +36,6 @@
 		const random_runner_input = document.getElementById("random_runner");
 		const ordered_runner_input = document.getElementById("ordered_runner");
 		const area_check = document.getElementById("area_checked");
-		var filedata = null;
 		input.value = null;
 		random_runner_input.checked = false;
 		random_runner_input.disabled = true;
@@ -71,7 +70,8 @@
 
 		async function load_sol(){
 			const filename = input.files[0];
-			filedata = await getAsByteArray(filename);
+			let filedata = await getAsByteArray(filename);
+			init_sol(filedata);
 			text_loc.textContent = "";
 			square_loc.textContent = "";
 			random_counter.textContent = "";
@@ -117,7 +117,7 @@
 		async function ordered_check(){
 			text_loc.textContent = "";
 			square_loc.textContent = "";
-			for (let i = 0; i < 4096; i++){//16->4096
+			for (let i = 0; i < 4096; i++){
 				var line_text = String(i).padStart(4)+":";
 				let array = [];
 				array.push(i);
@@ -127,7 +127,7 @@
 				array.push(i);
 				array.push(i);
 				for (let j = 0; j < 64; j++){
-					let output = run_test(filedata, j, array, area_check.checked);
+					let output = run_test(j, array, area_check.checked);
 					update_stats(output);
 					if (output.completed) {
 						line_text += ".";
@@ -154,7 +154,7 @@
 			array.push(getRandomInt(4096));
 			array.push(getRandomInt(4096));
 			array.push(getRandomInt(4096));
-			return run_test(filedata, first, array, area_check.checked);
+			return run_test(first, array, area_check.checked);
 		}
 		async function randomTests(){
 			while(true){

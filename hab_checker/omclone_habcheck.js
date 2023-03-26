@@ -112,11 +112,9 @@ function getInt32Memory0() {
     return cachedInt32Memory0;
 }
 /**
-* @returns {OutputStats}
 */
-export function setup_stats() {
-    const ret = wasm.setup_stats();
-    return OutputStats.__wrap(ret);
+export function init_puzzle() {
+    wasm.init_puzzle();
 }
 
 function passArray8ToWasm0(arg, malloc) {
@@ -124,6 +122,22 @@ function passArray8ToWasm0(arg, malloc) {
     getUint8Memory0().set(arg, ptr / 1);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
+}
+/**
+* @param {Uint8Array} solution
+*/
+export function init_sol(solution) {
+    const ptr0 = passArray8ToWasm0(solution, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    wasm.init_sol(ptr0, len0);
+}
+
+/**
+* @returns {OutputStats}
+*/
+export function setup_stats() {
+    const ret = wasm.setup_stats();
+    return OutputStats.__wrap(ret);
 }
 
 let cachedUint32Memory0 = null;
@@ -142,18 +156,15 @@ function passArray32ToWasm0(arg, malloc) {
     return ptr;
 }
 /**
-* @param {Uint8Array} solution
 * @param {number} first
 * @param {Uint32Array} variants
 * @param {boolean} test_area
 * @returns {OutputStats}
 */
-export function run_test(solution, first, variants, test_area) {
-    const ptr0 = passArray8ToWasm0(solution, wasm.__wbindgen_malloc);
+export function run_test(first, variants, test_area) {
+    const ptr0 = passArray32ToWasm0(variants, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passArray32ToWasm0(variants, wasm.__wbindgen_malloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.run_test(ptr0, len0, first, ptr1, len1, test_area);
+    const ret = wasm.run_test(first, ptr0, len0, test_area);
     return OutputStats.__wrap(ret);
 }
 
@@ -309,7 +320,7 @@ function finalizeInit(instance, module) {
     cachedUint32Memory0 = null;
     cachedUint8Memory0 = null;
 
-
+    wasm.__wbindgen_start();
     return wasm;
 }
 
