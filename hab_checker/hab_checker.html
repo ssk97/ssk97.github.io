@@ -136,11 +136,9 @@
 					}
 				}
 				square_loc.textContent += line_text+"\n";
-				if (i%16 == 0){
-					await new Promise(r => setTimeout(r, 10));
-					if (!ordered_runner_input.checked) {
-						return;
-					}
+				await new Promise(r => setTimeout(r, 10));
+				if (!ordered_runner_input.checked) {
+					return;
 				}
 			}
 			running_tests = false;
@@ -167,7 +165,7 @@
 					random_counter.textContent = "random runs: Crashed after "+random_runs+"\n";
 					return;
 				}
-				if (random_runs%100 == 0){
+				if (random_runs%10 == 0){
 					random_counter.textContent = "random runs: "+random_runs+"\n";
 					await new Promise(r => setTimeout(r, 10));
 					if (!random_runner_input.checked) {
