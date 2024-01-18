@@ -8,7 +8,7 @@
 
 "use strict";
 
-const version = "0.3.8";
+const version = "0.3.12";
 
 const canvas = document.querySelector("#glcanvas");
 const gl = canvas.getContext("webgl");
@@ -75,6 +75,13 @@ function acquireDisjointTimerQueryExtension(ctx) {
         ctx['deleteQuery'] = function (query) { ext['deleteQueryEXT'](query); };
         ctx['getQueryObject'] = function (query, pname) { return ext['getQueryObjectEXT'](query, pname); };
     }
+}
+
+try {
+    gl.getExtension("EXT_shader_texture_lod");
+    gl.getExtension("OES_standard_derivatives");
+} catch (e) {
+    console.warn(e);
 }
 
 acquireVertexArrayObjectExtension(gl);
@@ -415,7 +422,7 @@ function animation() {
 const SAPP_EVENTTYPE_TOUCHES_BEGAN = 10;
 const SAPP_EVENTTYPE_TOUCHES_MOVED = 11;
 const SAPP_EVENTTYPE_TOUCHES_ENDED = 12;
-const SAPP_EVENTTYPE_TOUCHES_CANCELLED = 13;
+const SAPP_EVENTTYPE_TOUCHES_CANCELED = 13;
 
 const SAPP_MODIFIER_SHIFT = 1;
 const SAPP_MODIFIER_CTRL = 2;
@@ -434,11 +441,11 @@ function into_sapp_mousebutton(btn) {
 function into_sapp_keycode(key_code) {
     switch (key_code) {
         case "Space": return 32;
-        case "Quote": return 39;
+        case "Quote": return 222;
         case "Comma": return 44;
         case "Minus": return 45;
         case "Period": return 46;
-        case "Slash": return 47;
+        case "Slash": return 189;
         case "Digit0": return 48;
         case "Digit1": return 49;
         case "Digit2": return 50;
@@ -630,7 +637,7 @@ var importObject = {
             gl.clearColor(r, g, b, a);
         },
         glClearStencil: function (s) {
-            gl.clearColorStencil(s);
+            gl.clearStencil(s);
         },
         glColorMask: function (red, green, blue, alpha) {
             gl.colorMask(red, green, blue, alpha);
@@ -949,6 +956,17 @@ var importObject = {
                 array[i] = log.charCodeAt(i);
             }
         },
+        glGetString: function(id) {
+            // getParameter returns "any": it could be GLenum, String or whatever,
+            // depending on the id.
+            var parameter = gl.getParameter(id).toString();
+            var len = parameter.length + 1;
+            var msg = wasm_exports.allocate_vec_u8(len);
+            var array = new Uint8Array(wasm_memory.buffer, msg, len);
+            array[parameter.length] = 0;
+            stringToUTF8(parameter, array, 0, len);
+            return msg;
+        },
         glCompileShader: function (shader, count, string, length) {
             GL.validateGLObjectID(GL.shaders, shader, 'glCompileShader', 'shader');
             gl.compileShader(GL.shaders[shader]);
@@ -1061,6 +1079,10 @@ var importObject = {
 			heap[0] = result;
 			heap[1] = (result - heap[0])/4294967296;
 		},
+        glGenerateMipmap: function (index) {
+            gl.generateMipmap(index);
+        },
+
         setup_canvas_size: function(high_dpi) {
             window.high_dpi = high_dpi;
             resize(canvas);
@@ -1253,6 +1275,18 @@ var importObject = {
                 wasm_exports.on_files_dropped_finish();
             };
 
+            let lastFocus = document.hasFocus();
+            var checkFocus = function() {
+                let hasFocus = document.hasFocus();
+                if(lastFocus == hasFocus){
+                    wasm_exports.focus(hasFocus);
+                    lastFocus = hasFocus;
+                }
+            }
+            document.addEventListener("visibilitychange", checkFocus);
+            window.addEventListener("focus", checkFocus);
+            window.addEventListener("blur", checkFocus);
+
             window.requestAnimationFrame(animation);
         },
 
@@ -1262,20 +1296,23 @@ var importObject = {
             FS.unique_id += 1;
             var xhr = new XMLHttpRequest();
             xhr.open('GET', url, true);
-            xhr.responseType = 'arraybuffer';
-            xhr.onload = function (e) {
-                if (this.status == 200) {
-                    var uInt8Array = new Uint8Array(this.response);
+            xhr.responseType = 'arraybuffer'; 
 
-                    FS.loaded_files[file_id] = uInt8Array;
-                    wasm_exports.file_loaded(file_id);
-                }
-            }
-            xhr.onerror = function (e) {
-                FS.loaded_files[file_id] = null;
-                wasm_exports.file_loaded(file_id);
+            xhr.onreadystatechange = function() {
+	        // looks like readyState === 4 will be fired on either successful or unsuccessful load:
+		// https://stackoverflow.com/a/19247992
+                if (this.readyState === 4) {
+                    if(this.status === 200) {  
+                        var uInt8Array = new Uint8Array(this.response);
+    
+                        FS.loaded_files[file_id] = uInt8Array;
+                        wasm_exports.file_loaded(file_id);
+                    } else {
+                        FS.loaded_files[file_id] = null;
+                        wasm_exports.file_loaded(file_id);
+                    }
+                } 
             };
-
             xhr.send();
 
             return file_id;
@@ -1417,7 +1454,7 @@ function load(wasm_path) {
                     if (version != crate_version) {
                         console.error(
                             "Version mismatch: gl.js version is: " + version +
-                                ", rust sapp-wasm crate version is: " + crate_version);
+                                ", miniquad crate version is: " + crate_version);
                     }
                     init_plugins(plugins);
                     obj.exports.main();

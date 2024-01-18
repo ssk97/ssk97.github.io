@@ -29,7 +29,7 @@
 			   id="solution-selector" name="solution"
 			   accept=".solution">
     </div>
-    <canvas id="glcanvas" tabindex='1'></canvas>
+    <canvas id="glcanvas" tabindex='1' oncontextmenu="return false;"></canvas>
     <!-- Minified and statically hosted version of https://github.com/not-fl3/miniquad/blob/master/native/sapp-wasm/js/gl.js -->
     <!-- base file for all miniquad apps -->
     <script src="gl.js"></script>
@@ -60,9 +60,12 @@
 		}
 		
 		async function read_puzzle(){
-			const input_file = puz_input.files[0];
-			filedata = await getAsByteArray(input_file);
-			wasm_exports.js_load_puzzle(js_object(filedata));
+			if (puz_input.files.length > 0){
+				const input_file = puz_input.files[0];
+				filedata = await getAsByteArray(input_file);
+				wasm_exports.js_load_puzzle(js_object(filedata));
+				puz_input.value = "Loaded!"; //Allow for re-loading the data
+			}
 		}
 		async function read_solution(){
 			const input_file = sol_input.files[0];
