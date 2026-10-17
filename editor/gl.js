@@ -14,6 +14,12 @@ const canvas = document.querySelector("#glcanvas");
 var gl;
 
 var clipboard = null;
+// The "copy"/"cut" events fire right after keydown, before the app has had a frame to
+// produce the copied text, so they can only hand out the previous value.
+// When available, write the text with the async Clipboard API as soon as the app sets it.
+var clipboard_api_ok = window.isSecureContext && !!(navigator.clipboard && navigator.clipboard.writeText);
+// Ctrl+V keydown is delayed until the "paste" event delivers the clipboard contents.
+var pending_paste_modifiers = null;
 
 var plugins = [];
 var wasm_memory;
@@ -641,6 +647,12 @@ var importObject = {
         },
         sapp_set_clipboard: function (ptr, len) {
             clipboard = UTF8ToString(ptr, len);
+            if (clipboard_api_ok) {
+                navigator.clipboard.writeText(clipboard).catch(function () {
+                    // Permission denied or no user activation: fall back to the copy event
+                    clipboard_api_ok = false;
+                });
+            }
         },
         dpi_scale,
         rand: function () {
@@ -1238,11 +1250,12 @@ var importObject = {
                 if (event.altKey) {
                     modifiers |= SAPP_MODIFIER_ALT;
                 }
-				if (modifiers == SAPP_MODIFIER_CTRL && sapp_key_code == 86) {
-					//handle paste separately
-				} else {
-					wasm_exports.key_down(sapp_key_code, modifiers, event.repeat);
-				}
+                if ((modifiers & SAPP_MODIFIER_CTRL) && sapp_key_code == 86) {
+                    // sent from the "paste" handler, once the clipboard contents are known
+                    pending_paste_modifiers = modifiers;
+                } else {
+                    wasm_exports.key_down(sapp_key_code, modifiers, event.repeat);
+                }
                 // for "space", "quote", and "slash" preventDefault will prevent
                 // key_press event, so send it here instead
                 if (sapp_key_code == 32 || sapp_key_code == 39 || sapp_key_code == 47) {
@@ -1313,15 +1326,15 @@ var importObject = {
                 resize(canvas, wasm_exports.resize);
             };
             window.addEventListener("copy", function (e) {
-                if (clipboard != null) {
-                    event.clipboardData.setData('text/plain', clipboard);
-                    event.preventDefault();
+                if (!clipboard_api_ok && clipboard != null) {
+                    e.clipboardData.setData('text/plain', clipboard);
+                    e.preventDefault();
                 }
             });
             window.addEventListener("cut", function (e) {
-                if (clipboard != null) {
-                    event.clipboardData.setData('text/plain', clipboard);
-                    event.preventDefault();
+                if (!clipboard_api_ok && clipboard != null) {
+                    e.clipboardData.setData('text/plain', clipboard);
+                    e.preventDefault();
                 }
             });
 
@@ -1338,7 +1351,9 @@ var importObject = {
                     stringToUTF8(pastedData, heap, 0, len);
                     wasm_exports.on_clipboard_paste(msg, len);
                 }
-				wasm_exports.key_down(86, SAPP_MODIFIER_CTRL, false);
+                var modifiers = pending_paste_modifiers != null ? pending_paste_modifiers : SAPP_MODIFIER_CTRL;
+                pending_paste_modifiers = null;
+                wasm_exports.key_down(86, modifiers, false);
             });
 
             window.ondragover = function (e) {

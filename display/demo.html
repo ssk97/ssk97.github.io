@@ -62,18 +62,37 @@
 		async function read_puzzle(){
 			if (puz_input.files.length > 0){
 				const input_file = puz_input.files[0];
-				filedata = await getAsByteArray(input_file);
+				const filedata = await getAsByteArray(input_file);
 				wasm_exports.js_load_puzzle(js_object(filedata));
-				puz_input.value = "Loaded!"; //Allow for re-loading the data
 			}
 		}
 		async function read_solution(){
-			const input_file = sol_input.files[0];
-			filedata = await getAsByteArray(input_file);
-			wasm_exports.js_load_solution(js_object(filedata));
+			if (sol_input.files.length > 0){
+				const input_file = sol_input.files[0];
+				const filedata = await getAsByteArray(input_file);
+				wasm_exports.js_load_solution(js_object(filedata));
+			}
+		}
+		//Empties the picker as its dialog opens, so that choosing the same file again, after it has changed, still loads
+		//it (a script can only give a picker the value ""). Cancelling the dialog puts back the file it showed.
+		function reload_on_repick(input){
+			let chosen = null;
+			input.addEventListener('click', () => {
+				chosen = input.files[0];
+				input.value = "";
+			});
+			input.addEventListener('cancel', () => {
+				if (chosen){
+					const files = new DataTransfer();
+					files.items.add(chosen);
+					input.files = files.files;
+				}
+			});
 		}
 		puz_input.addEventListener('change', read_puzzle);
 		sol_input.addEventListener('change', read_solution);
+		reload_on_repick(puz_input);
+		reload_on_repick(sol_input);
 		
 		function on_init(){
 			if (window.opener && window.opener !== window){
